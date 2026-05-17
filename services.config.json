@@ -1,0 +1,10 @@
+{
+  "controlPort": 4000,
+  "services": [
+    { "name": "users", "port": 4001, "state": "healthy" },
+    { "name": "orders", "port": 4002, "state": "db-slow", "latencyMs": 1500 },
+    { "name": "payments", "port": 4003, "state": "degraded" },
+    { "name": "notifications", "port": 4004, "state": "unhealthy" },
+    { "name": "search", "port": 4005, "state": "error" }
+  ]
+}
