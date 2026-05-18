@@ -1,6 +1,6 @@
 import { createServer, type Server } from 'node:http';
 import type { ServiceManager } from './serviceManager.js';
-import { readJson, sendJson } from './http-utils.js';
+import { readJson, sendJson, sendHtml } from './http-utils.js';
 import { VALID_STATES, type ServiceConfig, type HealthState } from './types.js';
 
 interface ReconfigureBody {
@@ -20,6 +20,11 @@ export function startControlServer(port: number, manager: ServiceManager): Promi
     const method = req.method ?? 'GET';
 
     try {
+      if (method === 'GET' && (url === '/' || url === '/dashboard')) {
+        sendHtml(res, 200, renderDashboard(manager.list()));
+        return;
+      }
+
       if (method === 'GET' && url === '/admin/services') {
         sendJson(res, 200, { services: manager.list() });
         return;
@@ -77,6 +82,53 @@ export function startControlServer(port: number, manager: ServiceManager): Promi
       resolve(server);
     });
   });
+}
+
+function esc(s: string): string {
+  return s.replace(/[&<>"]/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] ?? c);
+}
+
+/** Panel de control para demos: una fila por servicio + un botón por estado. */
+function renderDashboard(services: ServiceConfig[]): string {
+  const rows = services
+    .map((s) => {
+      const buttons = VALID_STATES.map((st) => {
+        const active = st === s.state ? ' active' : '';
+        return `<button class="b${active}" data-svc="${esc(s.name)}" data-state="${st}">${st}</button>`;
+      }).join('');
+      return `<tr><td class="svc">${esc(s.name)}<span class="port">:${s.port}</span></td>
+        <td class="cur">${s.state}</td><td class="btns">${buttons}</td></tr>`;
+    })
+    .join('');
+
+  return `<!doctype html><html lang="es"><head><meta charset="utf-8">
+<title>Mock services — control</title><style>
+body{font:14px system-ui,sans-serif;background:#0f172a;color:#e2e8f0;margin:0;padding:24px}
+h1{font-size:16px;font-weight:600;margin:0 0 16px}
+table{border-collapse:collapse;width:100%;max-width:900px}
+td{padding:10px 12px;border-bottom:1px solid #1e293b;vertical-align:middle}
+.svc{font-weight:600}.port{color:#64748b;font-weight:400;font-family:ui-monospace,monospace}
+.cur{color:#94a3b8;width:90px}
+.btns{text-align:right;white-space:nowrap}
+.b{font:12px system-ui;margin:2px;padding:5px 9px;border:1px solid #334155;border-radius:6px;
+background:#1e293b;color:#cbd5e1;cursor:pointer}
+.b:hover{border-color:#64748b}
+.b.active{background:#2563eb;border-color:#2563eb;color:#fff}
+</style></head><body>
+<h1>Mock services — panel de control</h1>
+<table>${rows}</table>
+<script>
+document.addEventListener('click',function(e){
+  var b=e.target.closest('button[data-svc]');if(!b)return;
+  b.disabled=true;
+  fetch('/admin/services/'+encodeURIComponent(b.dataset.svc)+'/state',
+    {method:'POST',headers:{'content-type':'application/json'},
+     body:JSON.stringify({state:b.dataset.state})})
+    .then(function(){location.reload()})
+    .catch(function(){b.disabled=false});
+});
+</script></body></html>`;
 }
 
 type Validation =

@@ -29,7 +29,9 @@ Registro central de servicios activos (Map por nombre). Operaciones:
 Es el único componente que escribe `services.config.json`.
 
 ### 3. Control server (`src/controlServer.ts`)
-Servidor HTTP separado en `controlPort`. Endpoints administrativos globales (`/admin/services`, `/admin/services/:name/state`, `/admin/reconfigure`). No conoce a los `MockService` directamente — opera a través del `ServiceManager`.
+Servidor HTTP separado en `controlPort`. Endpoints administrativos globales (`/admin/services`, `/admin/services/:name/state`, `/admin/reconfigure`) y un panel HTML en `GET /` (`renderDashboard`) para demos. No conoce a los `MockService` directamente — opera a través del `ServiceManager`.
+
+El panel es server-rendered (string HTML, sin deps ni build): fila por servicio + un botón por estado; el click hace `POST /admin/services/:name/state` con `fetch` y recarga. Reutiliza la ruta admin existente, no añade lógica nueva — solo presentación. `sendHtml` en `http-utils.ts`.
 
 `src/index.ts` es la composición: lee config → instancia manager → arranca mocks → arranca control server → engancha SIGINT/SIGTERM para apagado limpio.
 
