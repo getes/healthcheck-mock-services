@@ -65,6 +65,10 @@ curl -X POST http://localhost:4002/admin/state \
 
 ### En el control plane (`controlPort`, 4000 por defecto)
 
+**`GET /`** — panel de control HTML para demos: una fila por servicio + un botón por
+cada estado posible. Click → cambia el estado del mock en caliente. Abrir
+`http://localhost:4000/` en el navegador. Sin dependencias (render en servidor).
+
 **`GET /admin/services`** — lista todos los servicios y sus estados.
 
 **`POST /admin/services/:name/state`** — cambia el estado de un servicio por nombre (alternativa a apuntar a su puerto).
